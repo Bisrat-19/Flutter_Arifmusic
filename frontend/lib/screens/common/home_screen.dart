@@ -12,11 +12,16 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
+        automaticallyImplyLeading: false,         // 🔑 removes back arrow
+        title: const Text(
+          'Home',                                  // correct title
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
@@ -113,17 +118,6 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 80),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.white60,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(icon: Icon(Icons.library_music), label: 'Library'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
       ),
     );
   }
