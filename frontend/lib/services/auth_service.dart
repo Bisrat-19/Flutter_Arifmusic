@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const String baseUrl = "http://localhost:3000"; // use http://localhost:3000 if on web
+const String baseUrl = "http://localhost:3000"; 
 final storage = FlutterSecureStorage();
 
 class AuthService {
