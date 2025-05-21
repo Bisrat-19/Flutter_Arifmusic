@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';  // Changed import from signup_screen.dart
+import 'package:provider/provider.dart';
+import '../../config/app_routes.dart';
+import '../../providers/user_provider.dart';
+import '../../widgets/custom_button.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    await userProvider.initializeUser();
+    if (userProvider.user != null) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.mainNav,
+        arguments: 3, // Profile tab
+      );
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: SingleChildScrollView(                  // <-- Added scroll view here
+        child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: MediaQuery.of(context).size.height,
@@ -20,99 +56,55 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App Icon
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 56,
-                    backgroundColor: Color(0xFF1DB954),
-                    child: Icon(Icons.music_note, size: 56, color: Colors.white),
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: Icon(Icons.music_note, size: 56, color: Theme.of(context).iconTheme.color),
                   ),
                   const SizedBox(height: 24),
-
-                  // App Name
-                  const Text(
+                  Text(
                     'ArifMusic',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
                   ),
                   const SizedBox(height: 6),
-
-                  // Tagline
-                  const Text(
+                  Text(
                     'Ethiopian Music Streaming',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 0.8,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.8,
+                        ),
                   ),
                   const SizedBox(height: 48),
-
-                  // Login Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1DB954),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      child: const Text('Login'),
-                    ),
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.login);
+                    },
                   ),
                   const SizedBox(height: 12),
-
-                  // Register Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()), // Changed here
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Register'),
-                    ),
+                  CustomButton(
+                    text: 'Register',
+                    isOutlined: true,
+                    onPressed: () {
+                      Navigator.pushNamed(context, AppRoutes.register);
+                    },
                   ),
                   const SizedBox(height: 20),
-
-                  // Guest Button
                   TextButton(
                     onPressed: () {
-                      Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()), // change later to home screen
+                      Provider.of<UserProvider>(context, listen: false).clearUser();
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.mainNav,
+                        arguments: 0, // Home tab
                       );
                     },
-                    child: const Text(
-                      'Continue as Guest',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
+                    child: const Text('Continue as Guest'),
                   ),
                 ],
               ),

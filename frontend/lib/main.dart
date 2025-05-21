@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'config/theme.dart'; 
-import 'config/app_routes.dart'; 
+import 'package:provider/provider.dart';
+import 'config/theme.dart';
+import 'config/app_routes.dart';
+import 'providers/user_provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const ArifMusicApp());
 }
 
@@ -11,12 +14,17 @@ class ArifMusicApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ArifMusic',
-      debugShowCheckedModeBanner: false,
-      theme: appTheme, 
-      initialRoute: AppRoutes.welcome,
-      onGenerateRoute: AppRoutes.generateRoute, 
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+      ],
+      child: MaterialApp(
+        title: 'ArifMusic',
+        debugShowCheckedModeBanner: false,
+        theme: appTheme, // Ensure theme is set
+        initialRoute: AppRoutes.welcome,
+        onGenerateRoute: AppRoutes.generateRoute,
+      ),
     );
   }
 }
