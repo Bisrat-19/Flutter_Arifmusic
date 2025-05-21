@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:frontend/providers/user_provider.dart';
+import 'package:frontend/widgets/custom_button.dart';
+import 'package:provider/provider.dart';
 class HomeScreen extends StatelessWidget {
   final List<String> trending = ["Song 1", "Song 2", "Song 3"];
   final List<String> featuredArtists = ["Rophnan", "Artist 2", "Artist 3"];
@@ -9,43 +11,35 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,         // 🔑 removes back arrow
-        title: const Text(
-          'Home',                                  // correct title
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+    final user = Provider.of<UserProvider>(context).user;
 
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Home',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        elevation: Theme.of(context).appBarTheme.elevation,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[850],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: const TextField(
-                decoration: InputDecoration(
-                  icon: Icon(Icons.search, color: Colors.white70),
-                  hintText: 'songs ,artists...',
-                  hintStyle: TextStyle(color: Colors.white60),
-                  border: InputBorder.none,
+            // Personalized Greeting
+            if (user != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Text(
+                  'Welcome, ${user.fullName}!',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 22),
                 ),
-                style: TextStyle(color: Colors.white),
               ),
-            ),
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 16),
             // Discover Banner
             Stack(
               children: [
@@ -56,17 +50,24 @@ class HomeScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 160,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Container(color: Theme.of(context).colorScheme.surface, height: 160),
                   ),
                 ),
                 Positioned.fill(
                   child: Container(
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    // ignore: deprecated_member_use
-                    color: Colors.black.withOpacity(0.4),
-                    child: const Text(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
                       "Discover Ethiopian Music\nStream the best Ethiopian artists and discover new music from emerging talent",
-                      style: TextStyle(color: Colors.white, fontSize: 14),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 14,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -74,47 +75,38 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-
+            // Action Buttons
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Play Featured'),
+                  child: CustomButton(
+                    text: 'Play Featured',
+                    onPressed: () {
+                      // TODO: Play featured playlist
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white38),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Explore'),
+                  child: CustomButton(
+                    text: 'Explore',
+                    isOutlined: true,
+                    onPressed: () {
+                      // TODO: Explore
+                    },
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-            _sectionTitle('Trending Now'),
-            _songList(trending),
-
+            _sectionTitle(context, 'Trending Now'),
+            _songList(context, trending),
             const SizedBox(height: 24),
-            _sectionTitle('Featured Artists'),
-            _artistList(featuredArtists),
-
+            _sectionTitle(context, 'Featured Artists'),
+            _artistList(context, featuredArtists),
             const SizedBox(height: 24),
-            _sectionTitle('New Releases'),
-            _songList(newReleases),
+            _sectionTitle(context, 'New Releases'),
+            _songList(context, newReleases),
             const SizedBox(height: 80),
           ],
         ),
@@ -122,58 +114,77 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _sectionTitle(String title) {
+  Widget _sectionTitle(BuildContext context, String title) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 20),
+        ),
         TextButton(
-          onPressed: () {},
-          child: const Text('View all', style: TextStyle(color: Colors.white70)),
+          onPressed: () {
+            // TODO: Navigate to full list
+          },
+          child: Text(
+            'View all',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       ],
     );
   }
 
-  Widget _songList(List<String> songs) {
+  Widget _songList(BuildContext context, List<String> songs) {
     return SizedBox(
       height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: songs.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/images/song.jpg',
-                        height: 100,
-                        width: 120,
-                        fit: BoxFit.cover,
+          return GestureDetector(
+            onTap: () {
+              // TODO: Navigate to song details
+            },
+            child: Container(
+              width: 120,
+              margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/song.jpg',
+                          height: 100,
+                          width: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(color: Theme.of(context).colorScheme.surface, height: 100, width: 120),
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.play_circle, color: Colors.white, size: 32),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  songs[index],
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Text(
-                  'Artist Name',
-                  style: TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-              ],
+                      Icon(
+                        Icons.play_circle,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        size: 32,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    songs[index],
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Artist Name',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -181,33 +192,39 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _artistList(List<String> artists) {
+  Widget _artistList(BuildContext context, List<String> artists) {
     return SizedBox(
       height: 110,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: artists.length,
         itemBuilder: (context, index) {
-          return Container(
-            width: 80,
-            margin: const EdgeInsets.only(right: 12),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundImage: AssetImage('assets/images/profile.png'),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  artists[index],
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Text(
-                  '1.5M Followers',
-                  style: TextStyle(color: Colors.white54, fontSize: 10),
-                ),
-              ],
+          return GestureDetector(
+            onTap: () {
+              // TODO: Navigate to artist details
+            },
+            child: Container(
+              width: 80,
+              margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundImage: const AssetImage('assets/images/profile.png'),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    artists[index],
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '1.5M Followers',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10),
+                  ),
+                ],
+              ),
             ),
           );
         },
