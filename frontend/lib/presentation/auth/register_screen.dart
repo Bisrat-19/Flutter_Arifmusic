@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../services/auth_service.dart';
-import '../../../core/config/app_routes.dart';
+import 'package:provider/provider.dart';
+
+import '../../data/datasources/auth_service.dart';
+import '../../core/config/app_routes.dart';
+import '../providers/user_provider.dart';
+import '../widgets/custom_button.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,37 +22,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmCtrl = TextEditingController();
 
   bool _isObscured = true;
-  String _role = 'listener'; // listener | artist
+  bool _isLoading = false;
+  String _role = 'listener';
 
   void _togglePasswordVisibility() =>
       setState(() => _isObscured = !_isObscured);
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      final user = await AuthService.register(
-        _fullNameCtrl.text.trim(),
-        _emailCtrl.text.trim(),
-        _passwordCtrl.text,
-        _role,
-      );
-
-      if (user != null) {
-        // 👉 go to wrapper with bottom navigation
-        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration failed. Please try again.')),
+      setState(() => _isLoading = true);
+      try {
+        final result = await AuthService().register(
+          _fullNameCtrl.text.trim(),
+          _emailCtrl.text.trim(),
+          _passwordCtrl.text.trim(),
+          _role,
         );
+
+        if (result['success']) {
+          final token = result['token'];
+          final user = result['user'];
+
+          Provider.of<UserProvider>(context, listen: false).setUser(token, user);
+
+          Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Registration failed.")),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      } finally {
+        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
+  void dispose() {
+    _fullNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: const BackButton(color: Colors.white),
         elevation: 0,
       ),
@@ -62,16 +89,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const Text(
                 'Create an account',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
-              const Text('Sign up to get started',
-                  style: TextStyle(color: Colors.white70)),
+              const Text(
+                'Sign up to get started',
+                style: TextStyle(color: Colors.white70),
+              ),
               const SizedBox(height: 30),
 
-              // Full name
+              // Full Name Field
               TextFormField(
                 controller: _fullNameCtrl,
                 style: const TextStyle(color: Colors.white),
@@ -85,7 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Email
+              // Email Field
               TextFormField(
                 controller: _emailCtrl,
                 style: const TextStyle(color: Colors.white),
@@ -94,12 +124,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                v == null || v.isEmpty ? 'Enter your email' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Enter your email';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      .hasMatch(v)) {
+                    return 'Enter a valid email';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
-              // Password
+              // Password Field
               TextFormField(
                 controller: _passwordCtrl,
                 obscureText: _isObscured,
@@ -116,13 +154,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: _togglePasswordVisibility,
                   ),
                 ),
-                validator: (v) => v == null || v.length < 6
+                validator: (v) =>
+                v == null || v.length < 6
                     ? 'Password must be at least 6 characters'
                     : null,
               ),
               const SizedBox(height: 20),
 
-              // Confirm
+              // Confirm Password Field
               TextFormField(
                 controller: _confirmCtrl,
                 obscureText: _isObscured,
@@ -137,23 +176,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Role selection
-              const Text('Register as',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              // Role Selector
+              const Text(
+                'Register as',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
               Row(
                 children: [
                   Radio<String>(
                     value: 'listener',
                     groupValue: _role,
                     onChanged: (v) => setState(() => _role = v!),
-                    activeColor: Colors.green,
+                    activeColor: Theme.of(context).primaryColor,
                   ),
                   const Text('Listener', style: TextStyle(color: Colors.white)),
                   Radio<String>(
                     value: 'artist',
                     groupValue: _role,
                     onChanged: (v) => setState(() => _role = v!),
-                    activeColor: Colors.green,
+                    activeColor: Theme.of(context).primaryColor,
                   ),
                   const Text('Artist', style: TextStyle(color: Colors.white)),
                 ],
@@ -164,16 +205,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('Create account'),
-                ),
+              // Register Button
+              CustomButton(
+                text: _isLoading ? 'Registering...' : 'Create account',
+                onPressed: _isLoading ? null : _register,
               ),
               const SizedBox(height: 20),
 
@@ -181,8 +216,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Already have an account?',
-                      style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    'Already have an account?',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
@@ -190,8 +227,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
                       );
                     },
-                    child:
-                    const Text('Login', style: TextStyle(color: Colors.green)),
+                    child: Text(
+                      'Login',
+                      style: TextStyle(color: Theme.of(context).primaryColor),
+                    ),
                   ),
                 ],
               ),
