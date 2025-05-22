@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../services/auth_service.dart';
-import '../../../core/config/app_routes.dart';
+import 'package:provider/provider.dart';
+
+import '../../domain/repositories/user_repository.dart';
+import '../providers/user_provider.dart';
+import '../widgets/custom_button.dart';
 import 'register_screen.dart';
+import '../../core/config/app_routes.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,27 +19,34 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
-
   bool _isObscured = true;
+  bool _isLoading = false;
 
   void _togglePasswordVisibility() =>
       setState(() => _isObscured = !_isObscured);
 
   Future<void> _loginUser() async {
     if (_formKey.currentState!.validate()) {
-      final result = await AuthService.login(
-        emailCtrl.text.trim(),
-        passwordCtrl.text.trim(),
-      );
+      setState(() => _isLoading = true);
 
-      if (result == true) {
-        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login failed. Please check your credentials.'),
-          ),
+      try {
+        final userRepository = Provider.of<UserRepository>(context, listen: false);
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+        final user = await userRepository.login(
+          emailCtrl.text.trim(),
+          passwordCtrl.text.trim(),
         );
+
+        userProvider.setUser(user.token!, user.toJson());
+
+        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      } finally {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -42,9 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         leading: const BackButton(color: Colors.white),
         elevation: 0,
       ),
@@ -59,9 +71,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Welcome back',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -77,8 +90,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                v == null || v.isEmpty ? 'Please enter your email' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -104,41 +124,42 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
-                  child: const Text(
+                  onPressed: () {}, // TODO: Forgot password
+                  child: Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Color(0xFF1DB954)),
+                    style: TextStyle(color: Theme.of(context).primaryColor),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loginUser,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1DB954),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('Login'),
+                child: CustomButton(
+                  text: _isLoading ? 'Logging in...' : 'Login',
+                  onPressed: _isLoading ? null : _loginUser,
                 ),
               ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Don’t have an account?',
-                      style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    'Don’t have an account?',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const RegisterScreen()),
+                          builder: (_) => const RegisterScreen(),
+                        ),
                       );
                     },
-                    child: const Text('Sign up',
-                        style: TextStyle(color: Color(0xFF1DB954))),
+                    child: Text(
+                      'Sign up',
+                      style: TextStyle(color: Theme.of(context).primaryColor),
+                    ),
                   ),
                 ],
               ),
