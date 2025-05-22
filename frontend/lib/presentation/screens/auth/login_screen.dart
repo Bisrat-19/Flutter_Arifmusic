@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
-import '../../config/app_routes.dart';
-import '../../providers/user_provider.dart';
-import '../../widgets/custom_button.dart';
+import '../../../services/auth_service.dart';
+import '../../../core/config/app_routes.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,31 +14,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
+
   bool _isObscured = true;
-  bool _isLoading = false;
 
   void _togglePasswordVisibility() =>
       setState(() => _isObscured = !_isObscured);
 
   Future<void> _loginUser() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        final result = await AuthService().login(
-          emailCtrl.text.trim(),
-          passwordCtrl.text.trim(),
-        );
-        if (result['success']) {
-          Provider.of<UserProvider>(context, listen: false)
-              .setUser(result['token'], result['user']);
-          Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
-        }
-      } catch (e) {
+      final result = await AuthService.login(
+        emailCtrl.text.trim(),
+        passwordCtrl.text.trim(),
+      );
+
+      if (result == true) {
+        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          const SnackBar(
+            content: Text('Login failed. Please check your credentials.'),
+          ),
         );
-      } finally {
-        setState(() => _isLoading = false);
       }
     }
   }
@@ -49,9 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.black,
         leading: const BackButton(color: Colors.white),
         elevation: 0,
       ),
@@ -66,10 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Welcome back',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -85,15 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                v == null || v.isEmpty ? 'Please enter your email' : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -113,48 +98,47 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Please enter your password' : null,
+                v == null || v.isEmpty ? 'Please enter your password' : null,
               ),
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {}, // TODO: Forgot password
-                  child: Text(
+                  onPressed: () {},
+                  child: const Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Theme.of(context).primaryColor),
+                    style: TextStyle(color: Color(0xFF1DB954)),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: CustomButton(
-                  text: _isLoading ? 'Logging in...' : 'Login',
-                  onPressed: _isLoading ? null : _loginUser,
+                child: ElevatedButton(
+                  onPressed: _loginUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1DB954),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Login'),
                 ),
               ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Don’t have an account?',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  const Text('Don’t have an account?',
+                      style: TextStyle(color: Colors.white70)),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
+                            builder: (_) => const RegisterScreen()),
                       );
                     },
-                    child: Text(
-                      'Sign up',
-                      style: TextStyle(color: Theme.of(context).primaryColor),
-                    ),
+                    child: const Text('Sign up',
+                        style: TextStyle(color: Color(0xFF1DB954))),
                   ),
                 ],
               ),

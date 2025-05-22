@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/app_routes.dart';
+import 'package:frontend/core/config/app_routes.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});

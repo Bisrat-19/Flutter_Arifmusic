@@ -21,32 +21,21 @@ final ThemeData appTheme = ThemeData(
     onSurface: AppColors.textPrimary,
   ),
   textTheme: const TextTheme(
-    titleLarge: TextStyle(color: AppColors.textPrimary, fontSize: 26, fontWeight: FontWeight.bold),
+    titleLarge: TextStyle(color: AppColors.textPrimary),
     bodyMedium: TextStyle(color: AppColors.textPrimary),
-    bodySmall: TextStyle(color: AppColors.textSecondary),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: AppColors.accent,
       foregroundColor: AppColors.textPrimary,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
     ),
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(
     style: OutlinedButton.styleFrom(
       side: BorderSide(color: AppColors.textDisabled),
       foregroundColor: AppColors.textPrimary,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      foregroundColor: AppColors.textSecondary,
-      textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, decoration: TextDecoration.underline),
     ),
   ),
   inputDecorationTheme: InputDecorationTheme(
@@ -60,14 +49,5 @@ final ThemeData appTheme = ThemeData(
     backgroundColor: AppColors.surface,
     selectedItemColor: AppColors.accent,
     unselectedItemColor: AppColors.textSecondary,
-    type: BottomNavigationBarType.fixed,
-  ),
-  appBarTheme: AppBarTheme(
-    backgroundColor: AppColors.background,
-    foregroundColor: AppColors.textPrimary,
-    elevation: 0,
-  ),
-  iconTheme: IconThemeData(
-    color: AppColors.textPrimary,
   ),
 );
