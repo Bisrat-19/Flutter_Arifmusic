@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_routes.dart';
 import 'package:frontend/providers/user_provider.dart';
+import 'package:frontend/screens/artist/artist_dashboard_screen.dart';
 import 'package:frontend/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 
@@ -118,11 +119,12 @@ class ArtistProfile extends StatelessWidget {
             CustomButton(
               text: 'Artist Dashboard',
               icon: Icons.person,
-              color: const Color(0xFF1DB954), // Green
+              color: const Color(0xFF1DB954),
               isFullWidth: true,
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Artist Dashboard feature coming soon!')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ArtistDashboardScreen()),
                 );
               },
             ),
