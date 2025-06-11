@@ -1,0 +1,26 @@
+# Test Configuration
+test_timeout: 30s
+coverage_threshold: 80
+integration_test_timeout: 60s
+
+# Mock API endpoints for testing
+mock_api:
+  base_url: "http://localhost:3001"
+  auth_endpoint: "/api/auth"
+  songs_endpoint: "/api/songs"
+  users_endpoint: "/api/users"
+
+# Test data
+test_users:
+  listener:
+    email: "listener@test.com"
+    password: "TestPassword123!"
+    role: "listener"
+  artist:
+    email: "artist@test.com"
+    password: "TestPassword123!"
+    role: "artist"
+  admin:
+    email: "admin@test.com"
+    password: "TestPassword123!"
+    role: "admin"
