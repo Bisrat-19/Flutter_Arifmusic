@@ -1,63 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../domain/repositories/user_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/user_provider.dart';
 import '../widgets/custom_button.dart';
-import 'register_screen.dart';
-import '../../core/config/app_routes.dart';
 
-
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
   bool _isObscured = true;
-  bool _isLoading = false;
 
-  void _togglePasswordVisibility() =>
-      setState(() => _isObscured = !_isObscured);
+  void _togglePasswordVisibility() {
+    setState(() {
+      _isObscured = !_isObscured;
+    });
+  }
 
   Future<void> _loginUser() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+      final userNotifier = ref.read(userProvider.notifier);
 
       try {
-        final userRepository = Provider.of<UserRepository>(context, listen: false);
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-        final user = await userRepository.login(
-          emailCtrl.text.trim(),
-          passwordCtrl.text.trim(),
-        );
-
-        userProvider.setUser(user.token!, user.toJson());
-
-        Navigator.pushReplacementNamed(context, AppRoutes.mainNav);
+        final success = await userNotifier.login(emailCtrl.text.trim(), passwordCtrl.text.trim());
+        if (success && mounted) {
+          // Fetch profile data after login to ensure user state is up-to-date
+          await userNotifier.fetchProfile();
+          context.pushReplacementNamed('mainNav'); // Redirect to HomeScreen
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-        );
-      } finally {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: $e')),
+          );
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final userState = ref.watch(userProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        leading: const BackButton(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
         elevation: 0,
       ),
       body: Padding(
@@ -89,13 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Email',
                   labelStyle: TextStyle(color: Colors.white70),
                   border: OutlineInputBorder(),
+                  errorStyle: TextStyle(color: Colors.redAccent), // Custom error text style
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Please enter your email';
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Email is required';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
-                    return 'Please enter a valid email';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return 'Please enter a valid email address (e.g., example@domain.com)';
                   }
                   return null;
                 },
@@ -116,15 +115,34 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     onPressed: _togglePasswordVisibility,
                   ),
+                  errorStyle: const TextStyle(color: Colors.redAccent), // Custom error text style
                 ),
-                validator: (v) =>
-                v == null || v.isEmpty ? 'Please enter your password' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Password is required';
+                  }
+                  if (value.length < 8) {
+                    return 'Password must be at least 8 characters long';
+                  }
+                  if (!value.contains(RegExp(r'[A-Z]'))) {
+                    return 'Password must contain at least one uppercase letter';
+                  }
+                  if (!value.contains(RegExp(r'[a-z]'))) {
+                    return 'Password must contain at least one lowercase letter';
+                  }
+                  if (!value.contains(RegExp(r'[0-9]'))) {
+                    return 'Password must contain at least one number';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {}, // TODO: Forgot password
+                  onPressed: () {
+                    // TODO: Implement forgot password logic
+                  },
                   child: Text(
                     'Forgot Password?',
                     style: TextStyle(color: Theme.of(context).primaryColor),
@@ -135,8 +153,8 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 child: CustomButton(
-                  text: _isLoading ? 'Logging in...' : 'Login',
-                  onPressed: _isLoading ? null : _loginUser,
+                  text: userState.isLoading ? 'Logging in...' : 'Login',
+                  onPressed: userState.isLoading ? null : _loginUser,
                 ),
               ),
               const SizedBox(height: 20),
@@ -149,12 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      );
+                      context.pushNamed('register');
                     },
                     child: Text(
                       'Sign up',

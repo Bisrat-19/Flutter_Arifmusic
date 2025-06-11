@@ -1,54 +1,177 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/config/app_routes.dart';
-import 'package:frontend/presentation/providers/user_provider.dart';
 import 'package:frontend/presentation/widgets/custom_button.dart';
-import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import '../providers/user_provider.dart';
+import 'dart:typed_data'; // For Uint8List
 
-class ArtistProfile extends StatelessWidget {
+class ArtistProfile extends ConsumerWidget {
   const ArtistProfile({super.key});
 
+  /// Picks an image from the gallery and updates the user's profile image.
+  Future<void> _pickAndUpdateProfileImage(WidgetRef ref, BuildContext context) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null && context.mounted) {
+        final userState = ref.read(userProvider);
+        final user = userState.user;
+
+        if (user != null) {
+          final imageBytes = await pickedFile.readAsBytes();
+          final fileName = pickedFile.name;
+
+          final token = userState.token ?? await ref.read(userProvider.notifier).getCurrentToken();
+          if (token != null) {
+            await ref.read(userProvider.notifier).updateProfileImage(
+              token,
+              user.id,
+              imageBytes,
+              fileName,
+            );
+            // Refresh profile data and clear image cache
+            await _refreshProfileData(ref, context);
+            imageCache.clear();
+            imageCache.clearLiveImages();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Profile image updated successfully')),
+              );
+            }
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No authentication token available')),
+              );
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile image: $e')),
+        );
+      }
+    }
+  }
+
+  /// Refreshes the profile data by calling fetchProfile.
+  Future<void> _refreshProfileData(WidgetRef ref, BuildContext context) async {
+    try {
+      await ref.read(userProvider.notifier).fetchProfile();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile data refreshed successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to refresh profile: $e')),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.user;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userState = ref.watch(userProvider);
+    final userNotifier = ref.read(userProvider.notifier);
+    final user = userState.user;
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000), // Black background
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Profile',
-          style: Theme.of(context).textTheme.titleLarge,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop(); // Navigate back to the previous screen
+            } else {
+              context.go(AppRoutes.login); // Fallback to login if no previous route
+            }
+          },
         ),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-        elevation: Theme.of(context).appBarTheme.elevation,
+        title: Text(
+          'Artist Profile',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Colors.black,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor ?? Colors.white,
+        elevation: Theme.of(context).appBarTheme.elevation ?? 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => _refreshProfileData(ref, context),
+            tooltip: 'Refresh Profile',
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
+      body: userState.isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1DB954)))
+          : userState.error != null
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Error: ${userState.error}',
+              style: const TextStyle(color: Colors.redAccent),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            CustomButton(
+              text: 'Try Again',
+              icon: Icons.refresh,
+              color: const Color(0xFF1DB954),
+              onPressed: () => _refreshProfileData(ref, context),
+            ),
+          ],
+        ),
+      )
+          : SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile Picture with Checkmark
+            // Profile Picture with Checkmark and Update Button
             Stack(
               alignment: Alignment.bottomRight,
               children: [
                 CircleAvatar(
                   radius: 60,
-                  backgroundImage: const AssetImage('assets/images/profile.png'),
-                  backgroundColor: const Color(0xFF212121), // Dark gray background
-                  foregroundImage: const AssetImage('assets/images/profile.png'),
+                  backgroundColor: const Color(0xFF212121),
+                  foregroundImage: user?.profileImage != null
+                      ? NetworkImage(user!.profileImage!)
+                      : null,
+                  child: user?.profileImage == null
+                      ? const Icon(Icons.person, size: 60, color: Colors.white)
+                      : null,
                 ),
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1DB954), // Green checkmark background
+                    color: Color(0xFF1DB954),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.check_circle,
                     color: Colors.white,
                     size: 16,
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    onPressed: () => _pickAndUpdateProfileImage(ref, context),
                   ),
                 ),
               ],
@@ -58,56 +181,53 @@ class ArtistProfile extends StatelessWidget {
             Text(
               user?.fullName ?? 'Artist',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 8),
-            // Followers and Following (Placeholder, to be dynamic later)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Followers Column
                 Column(
                   children: [
                     Text(
-                      '0',
+                      '${user?.followersCount ?? 0}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 20,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Followers',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(width: 80), // Space between Followers and Following
-                // Following Column
+                const SizedBox(width: 80),
                 Column(
                   children: [
                     Text(
-                      '0',
+                      '${user?.followingCount ?? 0}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 20,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Following',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -121,7 +241,7 @@ class ArtistProfile extends StatelessWidget {
               color: const Color(0xFF1DB954),
               isFullWidth: true,
               onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.artistDashboard);
+                context.push(AppRoutes.artistDashboard);
               },
             ),
             const SizedBox(height: 12),
@@ -129,7 +249,7 @@ class ArtistProfile extends StatelessWidget {
               text: 'Edit Profile',
               icon: Icons.person,
               trailingIcon: Icons.arrow_forward,
-              color: const Color(0xFF212121), // Dark gray
+              color: const Color(0xFF212121),
               isFullWidth: true,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +262,7 @@ class ArtistProfile extends StatelessWidget {
               text: 'Get Verified',
               icon: Icons.verified,
               trailingIcon: Icons.arrow_forward,
-              color: const Color(0xFF212121), // Dark gray
+              color: const Color(0xFF212121),
               isFullWidth: true,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +275,7 @@ class ArtistProfile extends StatelessWidget {
               text: 'Settings',
               icon: Icons.settings,
               trailingIcon: Icons.arrow_forward,
-              color: const Color(0xFF212121), // Dark gray
+              color: const Color(0xFF212121),
               isFullWidth: true,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +288,7 @@ class ArtistProfile extends StatelessWidget {
               text: 'Help & Support',
               icon: Icons.help,
               trailingIcon: Icons.arrow_forward,
-              color: const Color(0xFF212121), // Dark gray
+              color: const Color(0xFF212121),
               isFullWidth: true,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -181,7 +301,7 @@ class ArtistProfile extends StatelessWidget {
               text: 'About',
               icon: Icons.info,
               trailingIcon: Icons.arrow_forward,
-              color: const Color(0xFF212121), // Dark gray
+              color: const Color(0xFF212121),
               isFullWidth: true,
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -194,25 +314,20 @@ class ArtistProfile extends StatelessWidget {
             CustomButton(
               text: 'Logout',
               icon: Icons.logout,
-              color: const Color(0xFFFF0000), // Red
+              color: const Color(0xFFFF0000),
               isFullWidth: true,
               onPressed: () async {
                 try {
-                  print('Logging out...');
-                  userProvider.logout(); // Clear user data
-                  print('User logged out. Navigating to login screen...');
-                  if (!context.mounted) return;
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    AppRoutes.login,
-                    (route) => false,
-                  );
+                  userNotifier.logout();
+                  if (context.mounted) {
+                    context.go(AppRoutes.login);
+                  }
                 } catch (e) {
-                  print('Logout error: $e');
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Logout failed: $e')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Logout failed: $e')),
+                    );
+                  }
                 }
               },
             ),

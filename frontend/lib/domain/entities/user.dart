@@ -4,6 +4,7 @@ class User {
   final String email;
   final String role;
   final String token;
+  final String? profileImage;
 
   User({
     required this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     required this.role,
     required this.token,
+    this.profileImage,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,16 +22,7 @@ class User {
       'email': email,
       'role': role,
       'token': token,
+      'profileImage': profileImage,
     };
-  }
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'] ?? '',
-      fullName: json['fullName'] ?? '',
-      email: json['email'] ?? '',
-      role: json['role'] ?? '',
-      token: json['token'] ?? '',
-    );
   }
 }

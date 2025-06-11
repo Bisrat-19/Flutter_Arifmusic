@@ -1,8 +1,8 @@
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../data/models/user_model.dart';
-import '../datasources/user_remote_data_source.dart';
-import '../datasources/local_storage_service.dart';
+import '../datasources/user/user_remote_data_source.dart';
+import '../datasources/user/local_storage_service.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remoteDataSource;
